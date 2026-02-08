@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Chocolate Adventure Game</title>
+  <style>
+    :root{
+      --bg:#f7efe6;
+      --panel:#fff8f0;
+      --accent:#6b3f2b;
+      --muted:#8b6b5a;
+      --tile-size:56px;
+      --gap:8px;
+      --font-sans: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+    html,body{height:100%;margin:0;font-family:var(--font-sans);background:linear-gradient(180deg,#fffaf0 0%, #f0e6dc 100%);color:var(--accent);overflow-x:hidden}
+    /* Top heading */
+    header{display:flex;align-items:center;justify-content:center;padding:18px 12px;font-size:1.4rem;font-weight:700}
+    header .title{display:flex;gap:10px;align-items:center}
+    /* Layout */
+    .container{max-width:1200px;margin:0 auto;padding:12px;display:flex;gap:16px;align-items:flex-start}
+    /* Left main area */
+    .main{flex:1;min-height:60vh;position:relative;padding:12px}
+    /* Right persistent panel */
+    .right-panel{width:320px;min-width:220px;background:linear-gradient(180deg,#fffdf9,#fff6ee);border-radius:12px;padding:14px;box-shadow:0 6px 18px rgba(107,63,43,0.12);position:sticky;top:20px;height:fit-content}
+    .right-panel h3{margin:0 0 8px 0;font-size:1rem}
+    .right-box{background:#fff;border-radius:10px;padding:10px;min-height:120px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:flex-start}
+    .name-tile{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:8px;background:linear-gradient(180deg,#fff,#ffe9d6);color:var(--accent);font-weight:700;font-size:1.1rem;box-shadow:0 4px 10px rgba(107,63,43,0.08);animation:glow 1.6s ease-in-out infinite}
+    @keyframes glow{0%{transform:translateY(0);box-shadow:0 6px 18px rgba(255,180,120,0.06)}50%{transform:translateY(-6px);box-shadow:0 12px 28px rgba(255,180,120,0.14)}100%{transform:translateY(0)}}
+    .big-choco{display:flex;align-items:center;gap:10px;font-size:2.2rem;margin-top:12px;justify-content:center}
+    .pair-emoji{font-size:2.2rem;display:inline-block;position:relative;left:-120px;opacity:0}
+    /* Initial name panel */
+    .name-panel{max-width:420px;margin:40px auto;padding:18px;border-radius:12px;background:var(--panel);box-shadow:0 10px 30px rgba(107,63,43,0.08);text-align:center}
+    .name-panel label{display:block;margin-bottom:8px;font-weight:600}
+    .name-panel input{width:100%;padding:10px;border-radius:8px;border:1px solid #e6d6c9;font-size:1rem}
+    .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-weight:700;cursor:pointer}
+    .btn:focus{outline:3px solid rgba(107,63,43,0.18)}
+    /* Game intro */
+    .intro{margin:12px 0;padding:12px;border-radius:10px;background:linear-gradient(180deg,#fff7f0,#fff2ea);box-shadow:0 6px 18px rgba(107,63,43,0.06)}
+    /* Grid */
+    .grid{display:grid;grid-template-columns:repeat(10,1fr);gap:var(--gap);margin-top:12px}
+    .box{height:var(--tile-size);display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#fff,#fff0ea);border-radius:8px;font-size:1.2rem;cursor:pointer;user-select:none;box-shadow:0 6px 12px rgba(107,63,43,0.06);transition:transform .12s ease,box-shadow .12s}
+    .box:hover{transform:translateY(-6px);box-shadow:0 14px 28px rgba(107,63,43,0.12)}
+    .box.revealed{cursor:default;opacity:0.98;transform:none;box-shadow:0 4px 8px rgba(107,63,43,0.04)}
+    .box .content{font-size:1.1rem}
+    /* Background visuals */
+    .sun{position:fixed;right:18px;top:18px;font-size:2.2rem;z-index:2;filter:drop-shadow(0 6px 12px rgba(255,200,80,0.18));animation:shine 6s linear infinite}
+    @keyframes shine{0%{transform:rotate(0) scale(1)}50%{transform:rotate(6deg) scale(1.03)}100%{transform:rotate(0) scale(1)}}
+    .choco-tree{position:fixed;left:12px;bottom:70px;font-size:2.2rem;z-index:1;animation:sway 4s ease-in-out infinite;transform-origin:bottom center}
+    @keyframes sway{0%{transform:rotate(-4deg)}50%{transform:rotate(4deg)}100%{transform:rotate(-4deg)}}
+    .river{position:fixed;left:0;right:0;bottom:0;height:60px;background:linear-gradient(90deg,#6fb3ff,#4aa3ff);z-index:0;overflow:hidden}
+    .river::before{content:"";position:absolute;left:0;right:0;top:0;height:100%;background:repeating-linear-gradient(90deg,rgba(255,255,255,0.06) 0 40px, transparent 40px 80px);opacity:0.6;animation:flow 6s linear infinite}
+    @keyframes flow{0%{transform:translateX(0)}100%{transform:translateX(-80px)}}
+    /* Chocolate rain container */
+    .rain-layer{position:fixed;left:0;right:0;top:0;bottom:0;pointer-events:none;z-index:3;overflow:visible}
+    /* Footer */
+    footer{position:fixed;left:12px;bottom:8px;font-family: 'Brush Script MT', cursive, serif;font-size:1rem;color:var(--muted);z-index:4}
+    /* Animation screen */
+    .animation-screen{position:relative;padding:18px;border-radius:12px;background:linear-gradient(180deg,#fff8f2,#fff2ea);box-shadow:0 10px 30px rgba(107,63,43,0.08);margin-top:12px;display:none}
+    .fadeOut{animation:fadeOut .6s forwards}
+    @keyframes fadeOut{to{opacity:0;transform:scale(.98);display:none}}
+    /* Falling celebration items */
+    .falling{position:fixed;top:-40px;font-size:1.4rem;z-index:5;pointer-events:none;opacity:0.95}
+    /* Responsive */
+    @media (max-width:900px){
+      .container{flex-direction:column;padding:10px}
+      .right-panel{position:relative;width:100%;top:0}
+      .pair-emoji{left:0;opacity:1}
+    }
+    /* Accessibility focus */
+    .box:focus{outline:3px solid rgba(107,63,43,0.14)}
+    /* small helpers */
+    .hidden{display:none}
+    .tooltip{position:fixed;right:18px;top:80px;background:#222;color:#fff;padding:8px 12px;border-radius:8px;opacity:0.95;z-index:999}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="title">Chocolate World ☀️🍫🌳</div>
+  </header>
+
+  <div class="sun" aria-hidden="true">☀️</div>
+  <div class="choco-tree" aria-hidden="true">🌳🍫</div>
+  <div class="river" aria-hidden="true"></div>
+  <div class="rain-layer" id="rainLayer" aria-hidden="true"></div>
+
+  <div class="container">
+    <main class="main" id="mainArea">
+      <!-- Initial name panel -->
+      <div class="name-panel" id="namePanel" role="dialog" aria-labelledby="enterNameLabel">
+        <label id="enterNameLabel">Enter Your Name:</label>
+        <input id="username" aria-label="Enter your name" placeholder="Type your name here" />
+        <div style="margin-top:12px">
+          <button id="startBtn" class="btn" aria-label="Start game">Start</button>
+        </div>
+      </div>
+
+      <!-- Intro & game area -->
+      <div id="gameArea" class="hidden">
+        <div class="intro" id="introText" aria-live="polite"></div>
+
+        <div id="gridContainer" aria-label="Chocolate grid">
+          <div id="grid" class="grid" role="grid" aria-label="Game grid"></div>
+        </div>
+
+        <div id="animationScreen" class="animation-screen" aria-live="polite" aria-hidden="true">
+          <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:center">
+            <div id="congratsText" style="font-size:1.2rem;font-weight:700"></div>
+            <div class="big-choco" aria-hidden="true">
+              <div style="font-size:3rem">🍫</div>
+              <div class="pair-emoji" id="pairEmoji">👦👧</div>
+            </div>
+          </div>
+          <div style="margin-top:12px;display:flex;gap:8px;justify-content:center">
+            <button id="shareBtn" class="btn" aria-label="Share your Instagram Story">📲 Share your Instagram Story</button>
+            <button id="copyBtn" class="btn" aria-label="Copy Story Text">Copy Story Text</button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <aside class="right-panel" id="rightPanel" aria-label="Right side panel">
+      <h3>Right Box</h3>
+      <div class="right-box" id="rightBox" aria-live="polite" aria-atomic="true">
+        <!-- name tiles will appear here on win -->
+        <div style="color:var(--muted);font-size:0.95rem">Your arranged name will appear here after you win.</div>
+      </div>
+      <div id="winExtras" style="margin-top:8px"></div>
+    </aside>
+  </div>
+
+  <footer>Made by Siyansh</footer>
+
+  <!-- Audio elements (must be triggered by user interaction) -->
+  <audio id="bgMusic" src="VERAFLOW.mp3" loop preload="auto"></audio>
+  <audio id="revealSnd" src="reveal.mp3" preload="auto"></audio>
+  <audio id="winSnd" src="win.mp3" preload="auto"></audio>
+
+  <script>
+    (function(){
+      // Elements
+      const startBtn = document.getElementById('startBtn');
+      const usernameInput = document.getElementById('username');
+      const namePanel = document.getElementById('namePanel');
+      const gameArea = document.getElementById('gameArea');
+      const introText = document.getElementById('introText');
+      const gridEl = document.getElementById('grid');
+      const rainLayer = document.getElementById('rainLayer');
+      const bgMusic = document.getElementById('bgMusic');
+      const revealSnd = document.getElementById('revealSnd');
+      const winSnd = document.getElementById('winSnd');
+      const rightBox = document.getElementById('rightBox');
+      const animationScreen = document.getElementById('animationScreen');
+      const congratsText = document.getElementById('congratsText');
+      const pairEmoji = document.getElementById('pairEmoji');
+      const shareBtn = document.getElementById('shareBtn');
+      const copyBtn = document.getElementById('copyBtn');
+      const rainTimeouts = [];
+      let username = '';
+      let letters = []; // array of characters (preserve duplicates)
+      let letterPositions = []; // indices chosen for each letter occurrence
+      let foundMap = {}; // map index->true when revealed
+      let foundLettersCount = 0;
+      const TOTAL_BOXES = 50;
+      const EMOJI_POOL = ['😊','🍬','🍭','🍩','🍪','🍫','✨','🎈','😄','🍓','🍒','🍰','🌟','💫','🍯','🍥'];
+
+      // Accessibility: allow Enter key on input to trigger start
+      usernameInput.addEventListener('keydown', (e)=>{
+        if(e.key === 'Enter'){ startBtn.click(); }
+      });
+
+      // Start button behavior
+      startBtn.addEventListener('click', startGame);
+
+      function startGame(){
+        let raw = usernameInput.value || '';
+        let name = raw.trim().toUpperCase();
+        if(!name){
+          alert('Naam enter karo!');
+          usernameInput.focus();
+          return;
+        }
+        if(name.length > TOTAL_BOXES){
+          // show message and truncate
+          const proceed = confirm('Naam bahut lamba hai, chhota naam do ya truncate kar doon? (OK = truncate)');
+          if(!proceed) return;
+          name = name.slice(0, TOTAL_BOXES);
+        }
+        username = name;
+        letters = username.split('');
+        // Hide name panel, show game area
+        namePanel.classList.add('hidden');
+        gameArea.classList.remove('hidden');
+
+        // Play background music (user interaction triggered)
+        try{ bgMusic.currentTime = 0; bgMusic.play().catch(()=>{}); }catch(e){}
+
+        // Play chocolate rain
+        startChocolateRain();
+
+        // Show intro text
+        introText.innerHTML = `<div style="font-weight:800">Happy Chocolate Day, ${escapeHtml(username)} 🎉🍫</div><div style="margin-top:6px">Wanna play a chocolate game?</div>`;
+
+        // Build grid and hide letters
+        buildGrid();
+      }
+
+      // Build 50 boxes and assign letters randomly
+      function buildGrid(){
+        gridEl.innerHTML = '';
+        // create boxes
+        for(let i=0;i<TOTAL_BOXES;i++){
+          const box = document.createElement('button');
+          box.className = 'box';
+          box.setAttribute('role','button');
+          box.setAttribute('aria-label',`Closed box ${i+1}`);
+          box.setAttribute('data-index',i);
+          box.setAttribute('tabindex','0');
+          box.innerHTML = `<div class="content">📦</div>`;
+          gridEl.appendChild(box);
+        }
+
+        // choose distinct indices for each letter occurrence
+        const availableIndices = Array.from({length:TOTAL_BOXES},(_,i)=>i);
+        shuffleArray(availableIndices);
+        letterPositions = [];
+        for(let i=0;i<letters.length;i++){
+          const idx = availableIndices.pop();
+          letterPositions.push(idx);
+        }
+
+        // assign data-letter attributes
+        // first mark all as empty
+        const boxes = gridEl.querySelectorAll('.box');
+        boxes.forEach((b,idx)=>{
+          b.dataset.letter = '';
+        });
+        // assign letters to chosen positions
+        for(let i=0;i<letters.length;i++){
+          const pos = letterPositions[i];
+          boxes[pos].dataset.letter = letters[i];
+        }
+        // fill other boxes with decorative emojis
+        boxes.forEach((b,idx)=>{
+          if(!b.dataset.letter){
+            const emoji = EMOJI_POOL[Math.floor(Math.random()*EMOJI_POOL.length)];
+            b.dataset.decor = emoji;
+          }
+        });
+
+        // Attach click handlers
+        boxes.forEach(b=>{
+          b.addEventListener('click', onBoxClick, {once:false});
+          b.addEventListener('keydown', (e)=>{
+            if(e.key === 'Enter' || e.key === ' '){
+              e.preventDefault();
+              b.click();
+            }
+          });
+        });
+
+        // Reset tracking
+        foundMap = {};
+        foundLettersCount = 0;
+      }
+
+      function onBoxClick(e){
+        const box = e.currentTarget;
+        const idx = parseInt(box.dataset.index,10);
+        if(box.classList.contains('revealed')) return;
+        const letter = box.dataset.letter;
+        box.classList.add('revealed');
+        box.setAttribute('aria-label',`Revealed box ${idx+1}`);
+        // disable further clicks
+        box.style.pointerEvents = 'none';
+        // reveal content
+        if(letter){
+          // reveal letter
+          box.innerHTML = `<div class="content" style="font-weight:800;font-size:1.2rem;color:${getContrastColor()}">${escapeHtml(letter)}</div>`;
+          // track found occurrence
+          if(!foundMap[idx]){
+            foundMap[idx] = true;
+            foundLettersCount++;
+            try{ revealSnd.currentTime = 0; revealSnd.play().catch(()=>{}); }catch(e){}
+          }
+        } else {
+          // show chocolate or decorative emoji
+          const deco = box.dataset.decor || '🍫';
+          box.innerHTML = `<div class="content">${deco}</div>`;
+          try{ revealSnd.currentTime = 0; revealSnd.play().catch(()=>{}); }catch(e){}
+        }
+        // After reveal, check win
+        checkWin();
+      }
+
+      function checkWin(){
+        // We need to ensure all occurrences of letters are found.
+        // foundLettersCount should equal letters.length
+        if(foundLettersCount >= letters.length){
+          triggerWin();
+        }
+      }
+
+      let winTriggered = false;
+      function triggerWin(){
+        if(winTriggered) return;
+        winTriggered = true;
+        // stop chocolate rain after a short delay
+        stopChocolateRain();
+
+        // fade out grid area
+        const gridContainer = document.getElementById('gridContainer');
+        gridContainer.classList.add('fadeOut');
+
+        // show animation screen
+        setTimeout(()=>{
+          animationScreen.style.display = 'block';
+          animationScreen.setAttribute('aria-hidden','false');
+          // populate right box with arranged name tiles
+          rightBox.innerHTML = '';
+          for(let ch of letters){
+            const span = document.createElement('span');
+            span.className = 'name-tile';
+            span.textContent = ch;
+            span.setAttribute('aria-hidden','false');
+            rightBox.appendChild(span);
+          }
+          // show big congratulatory message
+          congratsText.innerHTML = `🎉 Congratulations ${escapeHtml(username)}! Ye lo apni chocolate 🍫`;
+          // show pair emoji animation
+          animatePairAndShare();
+          // spawn falling celebration
+          spawnFallingCelebration();
+          // play win sound
+          try{ winSnd.currentTime = 0; winSnd.play().catch(()=>{}); }catch(e){}
+        },600);
+      }
+
+      function animatePairAndShare(){
+        // bring pair emoji from left to center and perform share animation
+        pairEmoji.style.left = '-120px';
+        pairEmoji.style.opacity = '0';
+        pairEmoji.style.transition = 'all 1.2s ease';
+        setTimeout(()=>{
+          pairEmoji.style.left = '0px';
+          pairEmoji.style.opacity = '1';
+        },100);
+        // after reaching center, perform small share animation
+        setTimeout(()=>{
+          // small move toward each other and show small chocolate between
+          pairEmoji.style.transform = 'translateX(-6px)';
+          const smallChoco = document.createElement('div');
+          smallChoco.textContent = '🍫';
+          smallChoco.style.position = 'absolute';
+          smallChoco.style.left = '50%';
+          smallChoco.style.top = '-18px';
+          smallChoco.style.transform = 'translateX(-50%) scale(0)';
+          smallChoco.style.transition = 'transform .6s ease';
+          smallChoco.style.fontSize = '1.4rem';
+          animationScreen.appendChild(smallChoco);
+          setTimeout(()=>{ smallChoco.style.transform = 'translateX(-50%) scale(1)'; },120);
+          // remove after a while
+          setTimeout(()=>{ smallChoco.remove(); },3000);
+        },1500);
+      }
+
+      function spawnFallingCelebration(){
+        const durationMs = 6000; // spawn for 6s then stop
+        const spawnInterval = 180; // ms
+        const endTime = Date.now() + durationMs;
+        const container = document.body;
+        const items = ['🌸','🍫'];
+        const created = [];
+        function spawn(){
+          if(Date.now() > endTime) return;
+          const el = document.createElement('div');
+          el.className = 'falling';
+          el.textContent = items[Math.floor(Math.random()*items.length)];
+          const left = Math.random()*100;
+          el.style.left = left + 'vw';
+          el.style.top = '-40px';
+          el.style.fontSize = (14 + Math.random()*18) + 'px';
+          container.appendChild(el);
+          created.push(el);
+          // animate fall using CSS transform
+          const fallDuration = 3000 + Math.random()*2500;
+          el.style.transition = `transform ${fallDuration}ms linear, opacity 400ms linear`;
+          requestAnimationFrame(()=>{
+            el.style.transform = `translateY(${window.innerHeight + 80}px) translateX(${(Math.random()-0.5)*120}px)`;
+            el.style.opacity = '0.98';
+          });
+          // remove after animation
+          setTimeout(()=>{ el.remove(); }, fallDuration + 500);
+          // schedule next
+          setTimeout(spawn, spawnInterval + Math.random()*200);
+        }
+        spawn();
+      }
+
+      // Chocolate rain (continuous small chocolates falling)
+      let rainRunning = false;
+      function startChocolateRain(){
+        if(rainRunning) return;
+        rainRunning = true;
+        const durationMs = 8000; // run for 8s to avoid perf issues
+        const endTime = Date.now() + durationMs;
+        function spawnDrop(){
+          if(Date.now() > endTime) return;
+          const el = document.createElement('div');
+          el.className = 'falling';
+          el.textContent = '🍫';
+          const left = Math.random()*100;
+          el.style.left = left + 'vw';
+          el.style.top = '-30px';
+          el.style.fontSize = (12 + Math.random()*18) + 'px';
+          rainLayer.appendChild(el);
+          const fallDuration = 2200 + Math.random()*2000;
+          el.style.transition = `transform ${fallDuration}ms linear, opacity 300ms linear`;
+          requestAnimationFrame(()=>{ el.style.transform = `translateY(${window.innerHeight + 60}px) translateX(${(Math.random()-0.5)*80}px)`; });
+          setTimeout(()=>{ el.remove(); }, fallDuration + 400);
+          // spawn next
+          const nextIn = 120 + Math.random()*220;
+          setTimeout(spawnDrop, nextIn);
+        }
+        spawnDrop();
+        // ensure stop after duration
+        setTimeout(()=>{ rainRunning = false; }, durationMs + 200);
+      }
+      function stopChocolateRain(){
+        // clear any remaining children
+        rainLayer.innerHTML = '';
+        rainRunning = false;
+      }
+
+      // Share / copy story text
+      function getShareText(){
+        return `I found my name ${username} in Chocolate World! 🍫🎉`;
+      }
+      copyBtn.addEventListener('click', async ()=>{
+        const text = getShareText();
+        try{
+          await navigator.clipboard.writeText(text);
+          showTooltip('Story text copied to clipboard — paste in your Instagram Story.');
+        }catch(e){
+          // fallback
+          const ta = document.createElement('textarea');
+          ta.value = text;
+          document.body.appendChild(ta);
+          ta.select();
+          try{ document.execCommand('copy'); showTooltip('Story text copied to clipboard — paste in your Instagram Story.'); }catch(err){ alert('Copy failed. Please select and copy manually: ' + text); }
+          ta.remove();
+        }
+      });
+
+      shareBtn.addEventListener('click', async ()=>{
+        const text = getShareText();
+        // Try to copy to clipboard and open Instagram
+        try{
+          await navigator.clipboard.writeText(text + '\n\nOpen Instagram → Story → Paste');
+          showTooltip('Story text copied to clipboard — paste in your Instagram Story.');
+        }catch(e){
+          showTooltip('Story text copied to clipboard — paste in your Instagram Story.');
+        }
+        // Open Instagram in new tab (user will paste)
+        try{ window.open('https://www.instagram.com/', '_blank'); }catch(e){}
+      });
+
+      // Utility functions
+      function shuffleArray(arr){
+        for(let i=arr.length-1;i>0;i--){
+          const j = Math.floor(Math.random()*(i+1));
+          [arr[i],arr[j]] = [arr[j],arr[i]];
+        }
+      }
+      function escapeHtml(s){ return String(s).replace(/[&<>"']/g, function(m){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]; }); }
+      function getContrastColor(){
+        return '#4a2b1b';
+      }
+      function showTooltip(msg, duration=2600){
+        const t = document.createElement('div');
+        t.className = 'tooltip';
+        t.textContent = msg;
+        document.body.appendChild(t);
+        setTimeout(()=>{ t.remove(); }, duration);
+      }
+
+      // Prevent too many falling elements: remove after some seconds (already handled)
+      // Small polish: hover/tap animations already added via CSS
+
+      // Edge-case: if user refreshes or returns, keep focus on input
+      usernameInput.focus();
+
+      // Ensure boxes have aria-labels updated when revealed (handled in click)
+      // End of IIFE
+    })();
+  </script>
+</body>
+</html>
